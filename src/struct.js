@@ -10,6 +10,36 @@ module.exports = (chunk) => {
     return len;
   };
 
+  const set = ({
+    name,
+    size,
+    match,
+  }, type) => {
+    assert.ok(name !== 'data' && !data[name]);
+    const len = getBufSize(size);
+    assert.ok(len <= buf.length);
+    if (len === 0) {
+      if (type === 'buffer') {
+        data[name] = Buffer.from([]);
+      } else {
+        data[name] = '';
+      }
+    } else {
+      const dataBuf = buf.slice(0, len);
+      if (type === 'buffer') {
+        data[name] = dataBuf;
+      } else {
+        data[name] = buf.slice(0, len).toString(type);
+      }
+      if (buf.length > 0) {
+        buf = buf.slice(len);
+      }
+    }
+    if (match) {
+      assert.ok(match(data[name]));
+    }
+  };
+
   const struct = () => ({
     ...data,
     data: buf,
@@ -17,10 +47,13 @@ module.exports = (chunk) => {
 
   struct.skip = (size, match) => {
     const len = getBufSize(size);
+    assert.ok(len <= buf.length);
     if (match) {
       assert.ok(match(buf.slice(0, len)));
     }
-    buf = buf.slice(len);
+    if (len !== 0) {
+      buf = buf.slice(len);
+    }
     return struct;
   };
 
@@ -55,17 +88,29 @@ module.exports = (chunk) => {
   };
 
   struct.hex = (name, size, match) => {
-    assert.ok(name !== 'data' && !data[name]);
-    if (buf.length === 0) {
-      data[name] = '';
-      return struct;
-    }
-    const len = getBufSize(size);
-    data[name] = buf.slice(0, len).toString('hex');
-    buf = buf.slice(len);
-    if (match) {
-      assert.ok(match(data[name]));
-    }
+    set({
+      name,
+      size,
+      match,
+    }, 'hex');
+    return struct;
+  };
+
+  struct.chars = (name, size, match) => {
+    set({
+      name,
+      size,
+      match,
+    }, 'utf-8');
+    return struct;
+  };
+
+  struct.buf = (name, size, match) => {
+    set({
+      name,
+      size,
+      match,
+    }, 'buffer');
     return struct;
   };
 
@@ -91,21 +136,6 @@ module.exports = (chunk) => {
     }
     data[name] = buf.readUIntBE(0, 3);
     buf = buf.slice(3);
-    return struct;
-  };
-
-  struct.buf = (name, size, match) => {
-    assert.ok(name !== 'data' && !data[name]);
-    if (buf.length === 0) {
-      data[name] = Buffer.from([]);
-      return struct;
-    }
-    const len = getBufSize(size);
-    data[name] = buf.slice(0, len);
-    buf = buf.slice(len);
-    if (match) {
-      assert.ok(match(data[name]));
-    }
     return struct;
   };
 

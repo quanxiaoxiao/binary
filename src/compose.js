@@ -97,8 +97,8 @@ module.exports = () => {
     return hmac.digest();
   };
 
-  buf.hash = () => {
-    const hash = crypto.createHash('sha256');
+  buf.hash = (type = 'sha256') => {
+    const hash = crypto.createHash(type);
     hash.update(buf());
     return hash.digest();
   };
@@ -106,7 +106,7 @@ module.exports = () => {
   buf.size = () => length;
 
   buf.get = (name) => {
-    if (!name) {
+    if (name == null) {
       return data;
     }
     const item = data[name];
