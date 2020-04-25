@@ -15,25 +15,31 @@ module.exports = (chunk) => {
     size,
     match,
   }, type) => {
-    assert.ok(name !== 'data' && !data[name]);
+    assert.ok(['skip', 'hex', 'utf-8', 'buffer', 'number'].includes(type) && name !== 'data' && !data[name]);
     const len = getBufSize(size);
     assert.ok(len <= buf.length);
     if (len === 0) {
-      if (type === 'buffer') {
-        data[name] = Buffer.from([]);
-      } else {
-        data[name] = '';
+      if (type !== 'skip') {
+        if (type === 'buffer') {
+          data[name] = Buffer.from([]);
+        } else if (type === 'number') {
+          data[name] = 0;
+        } else {
+          data[name] = '';
+        }
       }
     } else {
       const dataBuf = buf.slice(0, len);
-      if (type === 'buffer') {
-        data[name] = dataBuf;
-      } else {
-        data[name] = buf.slice(0, len).toString(type);
+      if (type !== 'skip') {
+        if (type === 'buffer') {
+          data[name] = dataBuf;
+        } else if (type === 'number') {
+          data[name] = buf.readUIntBE(0, size);
+        } else {
+          data[name] = buf.slice(0, len).toString(type);
+        }
       }
-      if (buf.length > 0) {
-        buf = buf.slice(len);
-      }
+      buf = buf.slice(len);
     }
     if (match) {
       assert.ok(match(data[name]));
@@ -46,44 +52,11 @@ module.exports = (chunk) => {
   });
 
   struct.skip = (size, match) => {
-    const len = getBufSize(size);
-    assert.ok(len <= buf.length);
-    if (match) {
-      assert.ok(match(buf.slice(0, len)));
-    }
-    if (len !== 0) {
-      buf = buf.slice(len);
-    }
-    return struct;
-  };
-
-  struct.int = (name, size, match) => {
-    assert.ok(name !== 'data' && !data[name]);
-    const len = getBufSize(size);
-    assert.ok(len <= 8);
-    if (buf.length < len) {
-      data[name] = 0;
-      return struct;
-    }
-    data[name] = buf.readUIntBE(0, len);
-    buf = buf.slice(len);
-    if (match) {
-      assert.ok(match(data[name]));
-    }
-    return struct;
-  };
-
-  struct.int8 = (name, match) => {
-    assert.ok(name !== 'data' && !data[name]);
-    if (buf.length === 0) {
-      data[name] = 0;
-      return struct;
-    }
-    data[name] = buf.readUInt8();
-    buf = buf.slice(1);
-    if (match) {
-      assert.ok(match(data[name]));
-    }
+    set({
+      name: '$$skip',
+      size,
+      match,
+    });
     return struct;
   };
 
@@ -114,28 +87,39 @@ module.exports = (chunk) => {
     return struct;
   };
 
-  struct.int16 = (name, match) => {
-    assert.ok(name !== 'data' && !data[name]);
-    if (buf.length < 2) {
-      data[name] = 0;
-      return struct;
-    }
-    data[name] = buf.readUInt16BE(0);
-    buf = buf.slice(2);
-    if (match) {
-      assert.ok(match(data[name]));
-    }
+  struct.int8 = (name, match) => {
+    set({
+      name,
+      match,
+      size: 1,
+    }, 'number');
     return struct;
   };
 
-  struct.int24 = (name) => {
-    assert.ok(name !== 'data' && !data[name]);
-    if (buf.length < 3) {
-      data[name] = 0;
-      return struct;
-    }
-    data[name] = buf.readUIntBE(0, 3);
-    buf = buf.slice(3);
+  struct.int16 = (name, match) => {
+    set({
+      name,
+      match,
+      size: 2,
+    }, 'number');
+    return struct;
+  };
+
+  struct.int24 = (name, match) => {
+    set({
+      name,
+      match,
+      size: 3,
+    }, 'number');
+    return struct;
+  };
+
+  struct.int32 = (name, size, match) => {
+    set({
+      name,
+      size: 4,
+      match,
+    }, 'number');
     return struct;
   };
 
@@ -157,7 +141,12 @@ module.exports = (chunk) => {
     return struct;
   };
 
-  struct.get = (name) => data[name] || null;
+  struct.get = (name) => {
+    if (name == null) {
+      return data;
+    }
+    return data[name];
+  };
 
   struct.payload = (payloadLengthName = 'length') => {
     const payloadLength = data[payloadLengthName];
