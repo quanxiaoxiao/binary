@@ -56,7 +56,7 @@ module.exports = (chunk) => {
       name: '$$skip',
       size,
       match,
-    });
+    }, 'skip');
     return struct;
   };
 
