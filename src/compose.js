@@ -63,6 +63,12 @@ module.exports = () => {
     return buf.set(name, buffer);
   };
 
+  buf.addLength16 = (name) => {
+    const buffer = Buffer.alloc(2);
+    buffer.writeUInt16BE(length);
+    return buf.set(name, buffer);
+  };
+
   buf.addLength24 = (name) => {
     const buffer = Buffer.alloc(3);
     buffer.writeUIntBE(length, 0, 3);
