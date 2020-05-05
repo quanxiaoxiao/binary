@@ -2,10 +2,10 @@ const assert = require('assert');
 
 module.exports = (chunk) => {
   let buf = chunk;
-  const data = {};
+  const store = {};
 
   const getBufSize = (size) => {
-    const len = typeof size === 'function' ? size(data, buf) : size;
+    const len = typeof size === 'function' ? size(store, buf) : size;
     assert.ok(typeof len === 'number');
     return len;
   };
@@ -14,42 +14,55 @@ module.exports = (chunk) => {
     name,
     size,
     match,
+    fn,
   }, type) => {
-    assert.ok(['skip', 'hex', 'utf-8', 'buffer', 'number'].includes(type) && name !== 'data' && !data[name]);
+    assert.ok(['skip', 'hex', 'utf-8', 'buffer', 'number', 'set'].includes(type) && name !== 'data' && !store[name]);
     const len = getBufSize(size);
-    assert.ok(len <= buf.length);
     if (len === 0) {
       if (type !== 'skip') {
-        if (type === 'buffer') {
-          data[name] = Buffer.from([]);
+        if (type === 'set') {
+          store[name] = fn(store, Buffer.from([]));
+        } else if (type === 'buffer') {
+          store[name] = Buffer.from([]);
         } else if (type === 'number') {
-          data[name] = 0;
+          store[name] = 0;
         } else {
-          data[name] = '';
+          store[name] = '';
         }
       }
     } else {
       const dataBuf = buf.slice(0, len);
       if (type !== 'skip') {
-        if (type === 'buffer') {
-          data[name] = dataBuf;
+        if (type === 'set') {
+          store[name] = fn(store, buf.slice(0, len));
+        } else if (type === 'buffer') {
+          store[name] = dataBuf;
         } else if (type === 'number') {
-          data[name] = buf.readUIntBE(0, size);
+          store[name] = buf.readUIntBE(0, size);
         } else {
-          data[name] = buf.slice(0, len).toString(type);
+          store[name] = buf.slice(0, len).toString(type);
         }
       }
       buf = buf.slice(len);
     }
     if (match) {
-      assert.ok(match(data[name]));
+      assert.ok(match(store[name]));
     }
   };
 
   const struct = () => ({
-    ...data,
+    ...store,
     data: buf,
   });
+
+  struct.set = (name, size, fn) => {
+    set({
+      name,
+      size,
+      fn,
+    }, 'set');
+    return struct;
+  };
 
   struct.skip = (size, match) => {
     set({
@@ -143,13 +156,13 @@ module.exports = (chunk) => {
 
   struct.get = (name) => {
     if (name == null) {
-      return data;
+      return store;
     }
-    return data[name];
+    return store[name];
   };
 
   struct.payload = (payloadLengthName = 'length') => {
-    const payloadLength = data[payloadLengthName];
+    const payloadLength = store[payloadLengthName];
     assert.ok(typeof payloadLength === 'number' && buf.length === payloadLength);
     struct.buf('payload', payloadLength);
     return struct.final();
@@ -157,7 +170,7 @@ module.exports = (chunk) => {
 
   struct.final = () => {
     assert.ok(buf.length === 0);
-    return data;
+    return store;
   };
 
   return struct;
