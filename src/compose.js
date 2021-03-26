@@ -87,6 +87,12 @@ module.exports = () => {
     return buf.set(name, buffer);
   };
 
+  buf.int64 = (name, num = 0) => {
+    const buffer = Buffer.alloc(8);
+    buffer.writeBigInt64BE(num, 0);
+    return buf.set(name, buffer);
+  };
+
   buf.random = (name, size = 32) => {
     const buffer = crypto.randomBytes(size);
     return buf.set(name, buffer);

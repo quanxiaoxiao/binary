@@ -38,7 +38,7 @@ module.exports = (chunk) => {
         } else if (type === 'buffer') {
           store[name] = dataBuf;
         } else if (type === 'number') {
-          store[name] = buf.readUIntBE(0, size);
+          store[name] = size === 64 ? buf.readBigInt64BE(0, size) : buf.readUIntBE(0, size);
         } else {
           store[name] = buf.slice(0, len).toString(type);
         }
@@ -131,6 +131,15 @@ module.exports = (chunk) => {
     set({
       name,
       size: 4,
+      match,
+    }, 'number');
+    return struct;
+  };
+
+  struct.int64 = (name, size, match) => {
+    set({
+      name,
+      size: 64,
       match,
     }, 'number');
     return struct;
