@@ -1,7 +1,7 @@
-const assert = require('assert');
-const crypto = require('crypto');
+import assert from 'node:assert';
+import crypto from 'node:crypto';
 
-module.exports = () => {
+export default () => {
   const data = {};
   let length = 0;
 

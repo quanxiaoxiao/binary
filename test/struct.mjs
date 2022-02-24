@@ -1,6 +1,6 @@
-const test = require('ava');
-const compose = require('../src/compose');
-const struct = require('../src/struct');
+import test from 'ava';
+import compose from '../src/compose.mjs';
+import struct from '../src/struct.mjs';
 
 test('set data to name', (t) => {
   const buf = compose()
@@ -23,11 +23,6 @@ test('pass', (t) => {
   t.is(ret.name, 'quan');
   t.is(ret.nameLength, 'quan'.length);
   t.is(ret.data.length, 0);
-  t.throws(() => {
-    struct(buf)
-      .int8('nameLength')
-      .chars('name', (d) => d.nameLength + 1)();
-  });
 
   ret = struct(buf)
     .int8('nameLength')

@@ -1,6 +1,10 @@
 node_modules
-logs
+logger
+dist
 *.log
+*.tar
+.DS_store
+.tplconfig
 
 # Swap
 [._]*.s[a-v][a-z]

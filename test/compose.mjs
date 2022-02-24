@@ -1,5 +1,5 @@
-const test = require('ava');
-const compose = require('../src/compose');
+import test from 'ava';
+import compose from '../src/compose.mjs';
 
 test('chars', (t) => {
   const buf = compose()

@@ -1,6 +1,6 @@
-const assert = require('assert');
+import assert from 'node:assert';
 
-module.exports = (chunk) => {
+export default (chunk) => {
   let buf = chunk;
   const store = {};
 
